@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>KENDALI - Bagian Organisasi Setda Kab. Banyuwangi</title>
+<meta name="theme-color" content="#6366f1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KENDALI">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" id="manifest-link">
+<link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/19vO2cXzfk6ajSVffygRYBfEUj_FQ6Mtf">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<?!= include('Style'); ?>
+<style>
+.menu-group{margin-bottom:4px;}
+.menu-header{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary);font-size:.875rem;font-weight:600;transition:all var(--transition-fast);border:1px solid transparent;user-select:none;}
+.menu-header:hover{background:var(--primary-soft);color:var(--primary);}
+.menu-header.open{background:var(--primary-soft);color:var(--primary);}
+.menu-header.has-active{color:var(--primary);font-weight:700;}
+.menu-header i.mi{width:18px;text-align:center;flex-shrink:0;font-size:.9375rem;}
+.menu-header .mh-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.menu-header .chev{font-size:.65rem;transition:transform var(--transition-base);flex-shrink:0;opacity:.7;}
+.menu-header.open .chev{transform:rotate(180deg);}
+.menu-sub{max-height:0;overflow:hidden;transition:max-height var(--transition-base);margin:2px 0 2px 20px;padding-left:10px;border-left:2px solid var(--border);}
+.menu-sub.open{max-height:460px;}
+.menu-sub .menu-item{font-size:.8125rem;padding:9px 11px;margin-bottom:2px;}
+.menu-sub .menu-item i{width:16px;font-size:.8125rem;}
+.sig-box{border:2px dashed var(--border);border-radius:var(--radius-md);background:#fff;overflow:hidden;}
+.sig-box canvas{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair;}
+.qr-card{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:var(--radius-md);border:1.5px solid var(--secondary);background:rgba(139,92,246,.06);}
+.qr-card img{width:96px;height:96px;flex-shrink:0;background:#fff;border-radius:6px;padding:4px;}
+</style>
+</head>
+<body class="antialiased">
+
+<div id="toast" class="toast"><i id="toast-icon" class="fas fa-check-circle text-2xl text-success"></i>
+  <div class="flex-1"><p id="toast-title" class="font-bold text-sm"></p><p id="toast-message" class="text-xs mt-0.5 text-muted"></p></div></div>
+
+<input type="file" id="ba-final-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handleBAFinalSelect(event)">
+
+<div id="login-screen">
+  <div class="login-box fade-in">
+    <div class="logo-area">
+      <img src="https://lh3.googleusercontent.com/d/19vO2cXzfk6ajSVffygRYBfEUj_FQ6Mtf" alt="Logo" class="logo-img">
+      <h1 class="gradient-text">KENDALI</h1><p>Bagian Organisasi Setda Kab. Banyuwangi</p>
+    </div>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group"><label>NIP / ID User</label><input type="text" id="login-nip" required placeholder="Masukkan NIP atau ID"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-pass" required placeholder="Masukkan Password"></div>
+      <button type="submit" id="btn-login" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Masuk</button>
+      <p id="login-error" class="error-msg"></p>
+    </form>
+  </div>
+</div>
+
+<div id="app-container">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header"><img src="https://lh3.googleusercontent.com/d/19vO2cXzfk6ajSVffygRYBfEUj_FQ6Mtf" alt="Logo" class="sidebar-logo"><h2>KENDALI</h2></div>
+    <nav class="menu">
+      <div class="menu-item active" data-page="dashboard" data-roles="Superadmin,TeamInternal,UserOPD" onclick="showSection('dashboard',this)"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+
+      <div class="menu-group" data-group="agenda">
+        <div class="menu-header" data-group="agenda" onclick="toggleMenuGroup('agenda')"><i class="mi fas fa-calendar-days"></i><span class="mh-label">AGENDA</span><i class="chev fas fa-chevron-down"></i></div>
+        <div class="menu-sub" data-group="agenda">
+          <div class="menu-item" data-page="input-agenda" data-roles="Superadmin,TeamInternal" onclick="showSection('input-agenda',this)"><i class="fas fa-calendar-plus"></i> Input Agenda</div>
+          <div class="menu-item" data-page="dashboard-agenda" data-roles="Superadmin,TeamInternal" onclick="showSection('dashboard-agenda',this)"><i class="fas fa-list"></i> Daftar Agenda</div>
+        </div>
+      </div>
+
+      <div class="menu-group" data-group="notulen">
+        <div class="menu-header" data-group="notulen" onclick="toggleMenuGroup('notulen')"><i class="mi fas fa-clipboard-list"></i><span class="mh-label">NOTULEN</span><i class="chev fas fa-chevron-down"></i></div>
+        <div class="menu-sub" data-group="notulen">
+          <div class="menu-item" data-page="input-notulen" data-roles="Superadmin,TeamInternal" onclick="showSection('input-notulen',this)"><i class="fas fa-file-pen"></i> Input Notulen</div>
+          <div class="menu-item" data-page="dashboard-notulen" data-roles="Superadmin,TeamInternal" onclick="showSection('dashboard-notulen',this)"><i class="fas fa-folder-open"></i> Daftar Notulen</div>
+        </div>
+      </div>
+
+      <div class="menu-group" data-group="bankdata">
+        <div class="menu-header" data-group="bankdata" onclick="toggleMenuGroup('bankdata')"><i class="mi fas fa-database"></i><span class="mh-label">BANK DATA</span><i class="chev fas fa-chevron-down"></i></div>
+        <div class="menu-sub" data-group="bankdata">
+          <div class="menu-item" data-page="bankdata-upload" data-roles="Superadmin,TeamInternal" onclick="showSection('bankdata-upload',this)"><i class="fas fa-cloud-arrow-up"></i> Unggah Dokumen</div>
+          <div class="menu-item" data-page="bankdata" data-roles="Superadmin,TeamInternal" onclick="showSection('bankdata',this)"><i class="fas fa-folder-tree"></i> Arsip Dokumen</div>
+        </div>
+      </div>
+
+      <div class="menu-group" data-group="tpp">
+        <div class="menu-header" data-group="tpp" onclick="toggleMenuGroup('tpp')"><i class="mi fas fa-clipboard-check"></i><span class="mh-label">PERSETUJUAN TPP</span><i class="chev fas fa-chevron-down"></i></div>
+        <div class="menu-sub" data-group="tpp">
+          <div class="menu-item" data-page="tpp-isi" data-roles="UserOPD,Superadmin" onclick="showSection('tpp-isi',this)"><i class="fas fa-square-check"></i> Isi Persetujuan</div>
+          <div class="menu-item" data-page="opd-profil" data-roles="UserOPD,Superadmin" onclick="showSection('opd-profil',this)"><i class="fas fa-qrcode"></i> Profil OPD &amp; TTD</div>
+          <div class="menu-item" data-page="tpp-monitor" data-roles="Superadmin,TeamInternal" onclick="showSection('tpp-monitor',this)"><i class="fas fa-table-cells"></i> Monitoring Wilayah</div>
+                    <div class="menu-item" data-page="tpp-notifikasi" data-roles="Superadmin,TeamInternal" onclick="showSection('tpp-notifikasi',this)"><i class="fas fa-bullhorn"></i> Generate Pemberitahuan</div>
+          <div class="menu-item" data-page="tpp-rekap" data-roles="Superadmin" onclick="showSection('tpp-rekap',this)"><i class="fas fa-chart-pie"></i> Rekap &amp; Konfigurasi</div>
+                    <div class="menu-item" data-page="tpp-ba" data-roles="Superadmin,TeamInternal,UserOPD" onclick="showSection('tpp-ba',this)"><i class="fas fa-file-signature"></i> Berita Acara</div>
+          <div class="menu-item" data-page="panduan" data-roles="Superadmin,TeamInternal,UserOPD" onclick="showSection('panduan',this)"><i class="fas fa-book-open"></i> Panduan Pengisian</div>
+        </div>
+      </div>
+
+
+
+      <div class="menu-group" data-group="admin" id="menu-admin">
+        <div class="menu-header" data-group="admin" onclick="toggleMenuGroup('admin')"><i class="mi fas fa-shield-halved"></i><span class="mh-label">ADMINISTRATOR</span><i class="chev fas fa-chevron-down"></i></div>
+        <div class="menu-sub" data-group="admin">
+          <div class="menu-item" data-page="user-management" data-roles="Superadmin" onclick="showSection('user-management',this)"><i class="fas fa-users-cog"></i> Manajemen User</div>
+          <div class="menu-item" data-page="log-password" data-roles="Superadmin" onclick="showSection('log-password',this)"><i class="fas fa-key"></i> Log Password</div>
+          <div class="menu-item" data-page="log-aktivitas" data-roles="Superadmin" onclick="showSection('log-aktivitas',this)"><i class="fas fa-clock-rotate-left"></i> Log Aktivitas</div>
+        </div>
+      </div>
+
+
+
+      <div class="menu-group" data-group="akun">
+        <div class="menu-header" data-group="akun" onclick="toggleMenuGroup('akun')"><i class="mi fas fa-user-gear"></i><span class="mh-label">AKUN</span><i class="chev fas fa-chevron-down"></i></div>
+        <div class="menu-sub" data-group="akun">
+          <div class="menu-item" data-page="profile" data-roles="Superadmin,TeamInternal,UserOPD" onclick="showSection('profile',this)"><i class="fas fa-user-cog"></i> Profil &amp; Password</div>
+          <div class="menu-item logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</div>
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <header class="top-bar no-print">
+      <div class="header-left"><button id="toggle-sidebar" onclick="toggleSidebar()" title="Menu"><i class="fas fa-bars"></i></button><h2 id="page-title">Dashboard</h2></div>
+      <div class="header-right">
+        <div class="header-user-profile"><div class="header-user-avatar" id="header-user-avatar">U</div>
+          <div class="header-user-info"><span class="header-user-name" id="header-user-name">User</span><span class="header-user-role" id="header-user-role">Role</span></div></div>
+        <div id="theme-toggle" class="theme-toggle" onclick="toggleDarkMode()" title="Ganti Tema"><div class="theme-toggle-circle"><i id="theme-icon" class="fas fa-sun"></i></div></div>
+      </div>
+    </header>
+
+    <div id="content-area">
+
+      <div id="dashboard" class="page active">
+        <div id="dash-internal">
+          <div class="stats-grid">
+            <div class="card"><div class="stat-icon"><i class="fas fa-calendar-alt"></i></div><div class="stat-info"><h3 id="stat-total-agenda">0</h3><p>Total Agenda</p></div></div>
+            <div class="card"><div class="stat-icon" style="background:rgba(16,185,129,.1);color:var(--success);"><i class="fas fa-clock"></i></div><div class="stat-info"><h3 id="stat-agenda-hari-ini" style="color:var(--success);">0</h3><p>Agenda Hari Ini</p></div></div>
+            <div class="card"><div class="stat-icon" style="background:rgba(239,68,68,.1);color:var(--danger);"><i class="fas fa-file-signature"></i></div><div class="stat-info"><h3 id="stat-total-notulen" style="color:var(--danger);">0</h3><p>Total Notulen</p></div></div>
+            <div class="card"><div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);"><i class="fas fa-folder-open"></i></div><div class="stat-info"><h3 id="stat-bankdata" style="color:var(--warning);">0</h3><p>Dokumen Bank Data</p></div></div>
+          </div>
+                    <div id="dash-compliance"></div>
+          <div id="dash-tpp-internal"></div>
+          <div class="section-header"><h3 class="section-title">Akses Cepat</h3></div>
+          <div class="stats-grid">
+            <div class="card" style="cursor:pointer;" onclick="showSection('input-agenda',null)"><div class="stat-icon"><i class="fas fa-calendar-plus"></i></div><div class="stat-info"><h3 style="font-size:1rem;">Input Agenda</h3><p>Catat kegiatan baru</p></div></div>
+            <div class="card" style="cursor:pointer;" onclick="showSection('input-notulen',null)"><div class="stat-icon" style="background:rgba(236,72,153,.1);color:var(--accent);"><i class="fas fa-file-pen"></i></div><div class="stat-info"><h3 style="font-size:1rem;">Input Notulen</h3><p>Rekam hasil rapat</p></div></div>
+            <div class="card" style="cursor:pointer;" onclick="showSection('bankdata-upload',null)"><div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);"><i class="fas fa-cloud-arrow-up"></i></div><div class="stat-info"><h3 style="font-size:1rem;">Unggah Dokumen</h3><p>SK, Perbup, Perda, SOP</p></div></div>
+            <div class="card" style="cursor:pointer;" onclick="showSection('tpp-monitor',null)"><div class="stat-icon" style="background:rgba(16,185,129,.1);color:var(--success);"><i class="fas fa-table-cells"></i></div><div class="stat-info"><h3 style="font-size:1rem;">Monitoring TPP</h3><p>Kontrol wilayah binaan</p></div></div>
+          </div>
+        </div>
+        <div id="dash-opd" style="display:none;"></div>
+      </div>
+
+      <div id="dashboard-agenda" class="page">
+        <div class="section-header"><h3 class="section-title">Daftar Agenda</h3>
+          <div class="section-actions">
+            <div class="filter-group">
+              <button onclick="filterAgenda('hari-ini',this)" class="filter-btn">Hari Ini</button>
+              <button onclick="filterAgenda('besok',this)" class="filter-btn">Besok</button>
+              <button onclick="filterAgenda('terlewati',this)" class="filter-btn">Selesai</button>
+              <button onclick="filterAgenda('semua',this)" class="filter-btn active">Semua</button>
+            </div>
+            <div style="position:relative;">
+              <button onclick="toggleExportMenu('agenda')" class="btn btn-success btn-sm"><i class="fas fa-file-export"></i> Export</button>
+              <div id="export-menu-agenda" class="hidden" style="position:absolute;right:0;top:100%;margin-top:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:20;min-width:160px;overflow:hidden;">
+                <button onclick="exportAgendaPDF()" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2" style="color:var(--text-primary);"><i class="fas fa-file-pdf text-danger"></i> PDF</button>
+                <button onclick="exportAgendaExcel()" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2" style="color:var(--text-primary);"><i class="fas fa-file-excel text-success"></i> Excel</button>
+                <button onclick="printDashboardAgenda()" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-t" style="color:var(--text-primary);border-color:var(--border);"><i class="fas fa-print text-muted"></i> Cetak</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrapper"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th class="col-date">Tanggal &amp; Waktu</th><th class="col-title">Kegiatan</th><th class="col-location">Lokasi</th><th class="col-pj">Penanggung Jawab</th><th class="col-actions no-print">Aksi</th></tr></thead>
+          <tbody id="agenda-table-body"><tr><td colspan="5" class="text-center py-10 text-muted"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat data...</td></tr></tbody>
+        </table></div><div id="agenda-pagination" class="pagination"></div></div>
+      </div>
+
+      <div id="input-agenda" class="page">
+        <div class="section-header"><h3 class="section-title">Input / Edit Agenda</h3><button type="button" onclick="cancelAgendaForm()" class="btn btn-danger no-print"><i class="fas fa-times-circle"></i> Batal</button></div>
+        <form id="form-agenda" onsubmit="handleAgendaSubmit(event)" class="form-card">
+          <input type="hidden" name="id" id="agenda-id">
+          <div class="form-row two-col">
+            <div><label class="form-label">Tanggal Mulai <span class="text-danger">*</span></label><input type="date" name="tanggal_mulai" id="agenda-tanggal-mulai" required class="form-input"></div>
+            <div><label class="form-label">Tanggal Selesai <span class="text-danger">*</span></label><input type="date" name="tanggal_selesai" id="agenda-tanggal-selesai" required class="form-input"></div>
+          </div>
+          <div class="form-row"><div><label class="form-label">Nama Kegiatan <span class="text-danger">*</span></label><input type="text" name="nama_kegiatan" id="agenda-nama-kegiatan" required class="form-input" placeholder="Contoh: Rapat Koordinasi Bulanan"></div></div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Waktu Mulai (24 Jam) <span class="text-danger">*</span></label><input type="time" name="waktu_mulai" id="agenda-waktu-mulai" required class="form-input"></div>
+            <div><label class="form-label">Lokasi <span class="text-danger">*</span></label><input type="text" name="lokasi" id="agenda-lokasi" required class="form-input" placeholder="Contoh: Ruang Rapat Utama"></div>
+          </div>
+          <div class="form-row"><div><label class="form-label"><i class="fas fa-users text-primary mr-1"></i> Penanggung Jawab <span class="text-muted font-normal">(Opsional)</span></label><select id="agenda-pj" name="pj_nip" multiple placeholder="Kosongkan jika belum ada PJ spesifik"></select><input type="hidden" name="pj_nama" id="agenda-pj-nama"></div></div>
+          <div class="form-row"><div><label class="form-label">Keterangan</label><textarea name="keterangan" id="agenda-keterangan" rows="3" class="form-textarea"></textarea></div></div>
+          <div class="flex flex-wrap gap-3 pt-4 border-t" style="border-color:var(--border);">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan &amp; Kirim Email</button>
+            <button type="button" onclick="resetAgendaForm()" class="btn btn-secondary"><i class="fas fa-rotate-left"></i> Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="dashboard-notulen" class="page">
+        <div class="stats-grid">
+          <div class="card"><div class="stat-icon" style="background:rgba(239,68,68,.1);color:var(--danger);"><i class="fas fa-file-alt"></i></div><div class="stat-info"><h3 id="nstat-total" style="color:var(--danger);">0</h3><p>Total Notulen</p></div></div>
+          <div class="card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-info"><h3 id="nstat-bulan">0</h3><p>Bulan Ini</p></div></div>
+          <div class="card"><div class="stat-icon" style="background:rgba(16,185,129,.1);color:var(--success);"><i class="fas fa-calendar-week"></i></div><div class="stat-info"><h3 id="nstat-minggu" style="color:var(--success);">0</h3><p>Minggu Ini</p></div></div>
+          <div class="card"><div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);"><i class="fas fa-trophy"></i></div><div class="stat-info"><h3 id="nstat-notulis" style="color:var(--warning);font-size:1.05rem;">-</h3><p>Notulis Teraktif</p></div></div>
+        </div>
+        <div class="section-header"><h3 class="section-title">Daftar Notulen</h3>
+          <div class="section-actions"><div style="position:relative;">
+            <button onclick="toggleExportMenu('notulen')" class="btn btn-success btn-sm"><i class="fas fa-file-export"></i> Export</button>
+            <div id="export-menu-notulen" class="hidden" style="position:absolute;right:0;top:100%;margin-top:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);z-index:20;min-width:160px;overflow:hidden;">
+              <button onclick="exportNotulenPDF()" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2" style="color:var(--text-primary);"><i class="fas fa-file-pdf text-danger"></i> PDF</button>
+              <button onclick="exportNotulenExcel()" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2" style="color:var(--text-primary);"><i class="fas fa-file-excel text-success"></i> Excel</button>
+              <button onclick="printAllNotulen()" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 border-t" style="color:var(--text-primary);border-color:var(--border);"><i class="fas fa-print text-muted"></i> Cetak</button>
+            </div>
+          </div></div>
+        </div>
+        <div class="form-card mb-4 no-print"><div class="form-row two-col" style="margin-bottom:0;">
+          <div><label class="form-label"><i class="fas fa-search mr-1"></i> Pencarian</label><input type="text" id="notulen-search" oninput="applyNotulenFilters()" placeholder="Cari nama rapat, lokasi, pembahasan..." class="form-input"></div>
+          <div><label class="form-label"><i class="fas fa-user mr-1"></i> Filter Notulis</label><select id="notulen-filter-notulis" onchange="applyNotulenFilters()" class="form-select"><option value="">Semua Notulis</option></select></div>
+        </div></div>
+        <div class="table-wrapper"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th class="col-date">Tanggal</th><th class="col-title">Nama Rapat</th><th class="col-hide-sm">Pembahasan</th><th class="col-hide-md">Tindak Lanjut</th><th class="col-hide-xs">Notulis</th><th class="col-actions no-print">Aksi</th></tr></thead>
+          <tbody id="notulen-table-body"><tr><td colspan="6" class="text-center py-10 text-muted"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat data...</td></tr></tbody>
+        </table></div><div id="notulen-pagination" class="pagination"></div></div>
+      </div>
+
+      <div id="input-notulen" class="page">
+        <div class="section-header"><h3 class="section-title">Input Notulen</h3><button type="button" onclick="cancelNotulenForm()" class="btn btn-danger no-print"><i class="fas fa-times-circle"></i> Batal</button></div>
+        <div class="form-card mb-4 no-print">
+          <div class="flex items-center justify-between mb-3"><h4 class="font-bold" style="color:var(--text-primary);"><i class="fas fa-magic text-primary mr-1"></i> Pilih Template</h4><button type="button" onclick="clearTemplate()" class="text-xs text-danger font-semibold">Kosongkan</button></div>
+          <div class="filter-group mb-3">
+            <button onclick="filterTemplates('semua',this)" class="filter-btn active">Semua</button>
+            <button onclick="filterTemplates('Koordinasi',this)" class="filter-btn">Koordinasi</button>
+            <button onclick="filterTemplates('Teknis',this)" class="filter-btn">Teknis</button>
+            <button onclick="filterTemplates('Sosialisasi',this)" class="filter-btn">Sosialisasi</button>
+            <button onclick="filterTemplates('Lapangan',this)" class="filter-btn">Lapangan</button>
+            <button onclick="filterTemplates('Evaluasi',this)" class="filter-btn">Evaluasi</button>
+          </div>
+          <div id="template-grid" class="template-grid"><div class="text-center py-6 text-muted"><i class="fas fa-spinner fa-spin text-xl"></i><p class="text-xs mt-2">Memuat template...</p></div></div>
+        </div>
+        <form id="form-notulen" onsubmit="handleNotulenSubmit(event)" class="form-card">
+          <input type="hidden" name="id" id="notulen-id">
+          <div class="form-row two-col">
+            <div><label class="form-label">Tanggal Rapat <span class="text-danger">*</span></label><input type="date" name="tanggal_rapat" id="notulen-tanggal" required class="form-input"></div>
+            <div><label class="form-label">Nama Rapat <span class="text-danger">*</span></label><input type="text" name="nama_rapat" id="notulen-nama-rapat" required class="form-input"></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Lokasi <span class="text-danger">*</span></label><input type="text" name="lokasi" id="notulen-lokasi" required class="form-input"></div>
+            <div><label class="form-label">Pimpinan Rapat <span class="text-danger">*</span></label><input type="text" name="pimpinan_rapat" id="notulen-pimpinan" required class="form-input"></div>
+          </div>
+          <div class="form-row"><div><label class="form-label">Notulis <span class="text-danger">*</span></label><select id="notulen-notulis-nip" name="notulis_nip" placeholder="Ketik nama notulis..." required class="form-select"></select><input type="hidden" name="notulis_nama" id="notulen-notulis-nama"></div></div>
+          <div class="form-row"><div><label class="form-label">Peserta Rapat</label><textarea name="peserta" id="notulen-peserta" rows="2" class="form-textarea"></textarea></div></div>
+          <div class="form-row"><div><label class="form-label">Agenda</label><textarea name="agenda" id="notulen-agenda" rows="2" class="form-textarea"></textarea></div></div>
+          <div class="form-row"><div><label class="form-label"><i class="fas fa-comments text-primary mr-1"></i> Pembahasan</label><textarea name="pembahasan" id="notulen-pembahasan" rows="4" class="form-textarea"></textarea></div></div>
+          <div class="form-row"><div><label class="form-label"><i class="fas fa-rocket text-success mr-1"></i> Tindak Lanjut</label><textarea name="tindak_lanjut" id="notulen-tindak-lanjut" rows="3" class="form-textarea"></textarea></div></div>
+          <div class="form-row"><div>
+            <label class="form-label"><i class="fas fa-camera text-primary mr-1"></i> Foto / Video Dokumentasi</label>
+            <div id="upload-zone" class="upload-zone" onclick="document.getElementById('media-input').click()">
+              <input type="file" id="media-input" multiple accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
+              <i class="fas fa-cloud-upload-alt text-4xl mb-2 text-muted"></i>
+              <p class="text-sm font-semibold" style="color:var(--text-primary);">Klik untuk upload atau drag &amp; drop</p>
+              <p class="text-xs mt-1 text-muted">Maks 50MB per file</p>
+            </div>
+            <div id="media-preview-list" class="flex flex-wrap gap-3 mt-3"></div>
+            <input type="hidden" id="media-urls-hidden" name="media_urls" value="[]">
+          </div></div>
+          <div class="flex flex-wrap gap-3 pt-4 border-t" style="border-color:var(--border);">
+            <button type="submit" id="btn-submit-notulen" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Data</button>
+            <button type="button" onclick="resetNotulenForm()" class="btn btn-secondary"><i class="fas fa-rotate-left"></i> Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="bankdata" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Bank Data Bagian Organisasi</h3><p class="text-xs mt-0.5 text-muted">Arsip SK, Perbup, Perda, SOP, kajian &amp; dokumen kerja</p></div>
+          <div class="section-actions">
+            <button onclick="showSection('bankdata-upload',null)" class="btn btn-primary btn-sm"><i class="fas fa-cloud-arrow-up"></i> Unggah Dokumen</button>
+            <button onclick="exportBankDataExcel()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="card"><div class="stat-icon" style="background:rgba(245,158,11,.1);color:var(--warning);"><i class="fas fa-folder-open"></i></div><div class="stat-info"><h3 id="bdstat-total" style="color:var(--warning);">0</h3><p>Total Dokumen</p></div></div>
+          <div class="card"><div class="stat-icon"><i class="fas fa-hard-drive"></i></div><div class="stat-info"><h3 id="bdstat-size" style="font-size:1.35rem;">0 MB</h3><p>Total Ukuran</p></div></div>
+          <div class="card"><div class="stat-icon" style="background:rgba(16,185,129,.1);color:var(--success);"><i class="fas fa-circle-check"></i></div><div class="stat-info"><h3 id="bdstat-final" style="color:var(--success);">0</h3><p>Status Final</p></div></div>
+          <div class="card"><div class="stat-icon" style="background:rgba(236,72,153,.1);color:var(--accent);"><i class="fas fa-download"></i></div><div class="stat-info"><h3 id="bdstat-dl" style="color:var(--accent);">0</h3><p>Total Unduhan</p></div></div>
+        </div>
+        <div class="form-card mb-4">
+          <div class="form-row" style="margin-bottom:12px;"><div><label class="form-label"><i class="fas fa-search mr-1"></i> Cari Dokumen</label><input type="text" id="bd-search" oninput="debounceBankData()" placeholder="Ketik judul, nama file, nomor, tag, atau kata kunci..." class="form-input"></div></div>
+          <div class="form-row two-col" style="margin-bottom:12px;">
+            <div><label class="form-label">Jenis Dokumen</label><select id="bd-jenis" onchange="loadBankData()" class="form-select"><option value="">Semua Jenis</option></select></div>
+            <div><label class="form-label">Kategori</label><select id="bd-kategori" onchange="loadBankData()" class="form-select"><option value="">Semua Kategori</option></select></div>
+          </div>
+          <div class="form-row two-col" style="margin-bottom:0;">
+            <div><label class="form-label">Tahun</label><select id="bd-tahun" onchange="loadBankData()" class="form-select"><option value="">Semua Tahun</option></select></div>
+            
+          </div>
+          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t" style="border-color:var(--border);">
+            <label class="form-label" style="margin:0;">Urutkan</label>
+            <select id="bd-sort" onchange="loadBankData()" class="form-select" style="width:auto;min-width:170px;">
+              <option value="newest">Terbaru diunggah</option><option value="oldest">Terlama diunggah</option>
+              <option value="title">Judul A–Z</option><option value="year">Tahun terbaru</option><option value="popular">Paling banyak diunduh</option>
+            </select>
+            <div class="filter-group" style="margin-left:auto;">
+              <button id="bd-view-grid" onclick="setBankView('grid')" class="filter-btn active"><i class="fas fa-grip"></i> Kartu</button>
+              <button id="bd-view-list" onclick="setBankView('list')" class="filter-btn"><i class="fas fa-list"></i> Tabel</button>
+            </div>
+            <button onclick="resetBankFilter()" class="btn btn-secondary btn-sm"><i class="fas fa-filter-circle-xmark"></i> Reset Filter</button>
+          </div>
+        </div>
+        <div id="bd-result-info" class="text-xs text-muted mb-2"></div>
+        <div id="bankdata-container"></div>
+        <div id="bankdata-pagination" class="pagination" style="border-radius:var(--radius-lg);border:1px solid var(--border);"></div>
+      </div>
+
+      <div id="bankdata-upload" class="page">
+        <div class="section-header"><h3 class="section-title">Unggah / Edit Dokumen</h3><button type="button" onclick="cancelBankForm()" class="btn btn-danger"><i class="fas fa-times-circle"></i> Batal</button></div>
+        <form id="form-bankdata" onsubmit="handleBankDataSubmit(event)" class="form-card">
+          <input type="hidden" id="bd-id"><input type="hidden" id="bd-file-id"><input type="hidden" id="bd-file-name"><input type="hidden" id="bd-file-type"><input type="hidden" id="bd-file-size">
+          <div class="form-row"><div>
+            <label class="form-label"><i class="fas fa-file-arrow-up text-primary mr-1"></i> File Dokumen <span class="text-danger">*</span></label>
+            <div id="bd-dropzone" class="upload-zone" onclick="document.getElementById('bd-file-input').click()">
+              <input type="file" id="bd-file-input" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.rtf,.odt,.ods,.odp" onchange="handleBankFileSelect(event)">
+              <i class="fas fa-file-circle-plus text-4xl mb-2 text-muted"></i>
+              <p class="text-sm font-semibold" style="color:var(--text-primary);">Klik untuk pilih file atau tarik ke sini</p>
+              <p class="text-xs mt-1 text-muted">PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, CSV, TXT, ODF • Maks 25MB</p>
+            </div>
+            <div id="bd-file-preview" class="mt-3"></div>
+          </div></div>
+          <div class="form-row"><div><label class="form-label">Judul Dokumen <span class="text-danger">*</span></label><input type="text" id="bd-judul" required class="form-input"></div></div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Jenis Dokumen <span class="text-danger">*</span></label><select id="bd-form-jenis" required class="form-select"></select></div>
+            <div><label class="form-label">Kategori</label><select id="bd-form-kategori" class="form-select"></select></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Nomor Dokumen</label><input type="text" id="bd-nomor" class="form-input"></div>
+            <div><label class="form-label">Tanggal Dokumen</label><input type="date" id="bd-tanggal" class="form-input"></div>
+          </div>
+                    <div class="form-row">
+            <div><label class="form-label">Tahun <span class="text-danger">*</span></label><select id="bd-form-tahun" required class="form-select"></select></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">SKPD Terkait</label><select id="bd-form-skpd" class="form-select"><option value="-">Umum / Seluruh SKPD</option></select></div>            
+          </div>
+          <div class="form-row"><div><label class="form-label">Tag / Kata Kunci</label><input type="text" id="bd-tags" class="form-input" placeholder="Pisahkan dengan koma"></div></div>
+          <div class="form-row"><div><label class="form-label">Deskripsi / Ringkasan Isi</label><textarea id="bd-deskripsi" rows="3" class="form-textarea"></textarea></div></div>
+          <div class="flex flex-wrap gap-3 pt-4 border-t" style="border-color:var(--border);">
+            <button type="submit" id="btn-save-bank" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Dokumen</button>
+            <button type="button" onclick="resetBankForm()" class="btn btn-secondary"><i class="fas fa-rotate-left"></i> Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="tpp-isi" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Persetujuan TPP</h3><p class="text-xs mt-0.5 text-muted" id="tpp-isi-subtitle">Konfirmasi tanggal 7 dan 10</p></div>
+          <div class="section-actions">
+            <select id="tpp-isi-skpd" onchange="loadTPPIsi()" class="form-select hidden" style="width:auto;min-width:200px;"></select>
+            <select id="tpp-isi-tahun" onchange="loadTPPIsi()" class="form-select" style="width:auto;min-width:110px;"></select>
+            <div class="filter-group">
+              <button id="tpp-view-card" onclick="setTPPView('card')" class="filter-btn active"><i class="fas fa-grip"></i> Kartu</button>
+              <button id="tpp-view-table" onclick="setTPPView('table')" class="filter-btn"><i class="fas fa-table"></i> Tabel</button>
+            </div>
+          </div>
+        </div>
+        <div id="tpp-isi-periode"></div>
+        <div id="tpp-isi-stats" class="stats-grid"></div>
+        <div id="tpp-isi-profil"></div>
+        <div id="tpp-isi-container"></div>
+      </div>
+
+      <div id="opd-profil" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Profil OPD &amp; Tanda Tangan</h3><p class="text-xs mt-0.5 text-muted">Diisi oleh admin OPD masing-masing</p></div>
+          <div class="section-actions"><select id="profil-skpd" onchange="loadProfilOPD()" class="form-select hidden" style="width:auto;min-width:220px;"></select></div>
+        </div>
+        <div id="profil-kontak"></div>
+        <form id="form-profil-opd" onsubmit="saveProfilOPDForm(event)">
+          <div class="form-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <div class="stat-icon" style="width:38px;height:38px;font-size:1.05rem;"><i class="fas fa-user-pen"></i></div>
+              <div><h4 class="font-bold" style="color:var(--text-primary);">Pengelola Admin TPP</h4><p class="text-xs text-muted">Pihak yang menyatakan setuju pada Berita Acara</p></div>
+            </div>
+            <div class="form-row"><div><label class="form-label">Jabatan / Sebutan <span class="text-danger">*</span></label><input type="text" id="pf-adm-jabatan" required class="form-input" placeholder="Pengelola Admin TPP ..."></div></div>
+            <div class="form-row two-col">
+              <div><label class="form-label">Nama Lengkap &amp; Gelar <span class="text-danger">*</span></label><input type="text" id="pf-adm-nama" required class="form-input"></div>
+              <div><label class="form-label">NIP <span class="text-danger">*</span></label><input type="text" id="pf-adm-nip" required class="form-input" placeholder="18 digit"></div>
+            </div>
+            <div class="form-row two-col">
+              <div><label class="form-label">Pangkat / Golongan <span class="text-danger">*</span></label><input type="text" id="pf-adm-pangkat" required class="form-input" placeholder="Contoh: Penata (III/c)"></div>
+              <div><label class="form-label">Metode Tanda Tangan</label><select id="pf-adm-metode" class="form-select"><option value="ELEKTRONIK">Elektronik — barcode QR verifikasi</option><option value="MANUAL">Manual — ttd. basah / gambar</option></select></div>
+            </div>
+          </div>
+          <div class="form-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <div class="stat-icon" style="width:38px;height:38px;font-size:1.05rem;background:rgba(16,185,129,.1);color:var(--success);"><i class="fas fa-user-tie"></i></div>
+              <div><h4 class="font-bold" style="color:var(--text-primary);">Kepala OPD</h4><p class="text-xs text-muted">Pihak yang mengetahui Berita Acara</p></div>
+            </div>
+            <div class="form-row"><div><label class="form-label">Jabatan <span class="text-danger">*</span></label><input type="text" id="pf-kep-jabatan" required class="form-input" placeholder="Kepala Dinas ... / Camat ..."></div></div>
+            <div class="form-row two-col">
+              <div><label class="form-label">Nama Lengkap &amp; Gelar <span class="text-danger">*</span></label><input type="text" id="pf-kep-nama" required class="form-input"></div>
+              <div><label class="form-label">NIP <span class="text-danger">*</span></label><input type="text" id="pf-kep-nip" required class="form-input" placeholder="18 digit"></div>
+            </div>
+            <div class="form-row two-col">
+              <div><label class="form-label">Pangkat / Golongan <span class="text-danger">*</span></label><input type="text" id="pf-kep-pangkat" required class="form-input" placeholder="Contoh: Pembina Utama Muda (IV/c)"></div>
+              <div><label class="form-label">Metode Tanda Tangan</label><select id="pf-kep-metode" class="form-select"><option value="ELEKTRONIK">Elektronik — barcode QR verifikasi</option><option value="MANUAL">Manual — ttd. basah / gambar</option></select></div>
+            </div>
+            <div class="form-row two-col" style="margin-bottom:0;">
+              <div><label class="form-label">PIN Persetujuan Kepala OPD</label><input type="password" id="pf-kep-pin" class="form-input" placeholder="Kosongkan bila tidak diubah" autocomplete="new-password">
+                <p class="text-xs text-muted mt-1">Bila diisi, PIN ini wajib dimasukkan setiap kali Kepala OPD bertanda tangan elektronik. Minimal 4 digit.</p></div>
+              <div><label class="form-label">&nbsp;</label><label style="display:flex;align-items:center;gap:8px;font-size:.8125rem;cursor:pointer;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:var(--bg-muted);"><input type="checkbox" id="pf-kep-pin-clear" style="width:18px;height:18px;accent-color:#ef4444;"> Hapus PIN yang tersimpan</label>
+                <p id="pf-pin-status" class="text-xs text-muted mt-1"></p></div>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="flex flex-wrap gap-3">
+              <button type="submit" id="btn-save-profil" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Identitas &amp; Metode</button>
+              <button type="button" onclick="loadProfilOPD()" class="btn btn-secondary"><i class="fas fa-rotate-left"></i> Muat Ulang</button>
+            </div>
+            <div id="profil-meta" class="text-xs text-muted mt-3"></div>
+          </div>
+        </form>
+
+        <div class="section-header"><h3 class="section-title" style="font-size:1.05rem;">Gambar Tanda Tangan Manual (Opsional)</h3></div>
+        <div class="form-card">
+          <p class="text-xs text-muted mb-4"><i class="fas fa-circle-info text-primary mr-1"></i>Tanda tangan <strong>elektronik tidak memerlukan gambar</strong> — sistem membuat barcode QR berisi tautan verifikasi. Gambar di bawah hanya dipakai bila metode <strong>Manual</strong> dipilih. Bila kosong, dokumen menampilkan <strong>"ttd."</strong> untuk ditandatangani basah.</p>
+
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;">
+            <div class="stat-icon" style="width:34px;height:34px;font-size:.95rem;"><i class="fas fa-user-pen"></i></div>
+            <h4 class="font-bold text-sm" style="color:var(--text-primary);">Gambar TTD Pengelola Admin TPP</h4>
+          </div>
+          <div class="sig-box"><canvas id="sig-canvas-admin"></canvas></div>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <button type="button" onclick="clearSignature('admin')" class="btn btn-secondary btn-sm"><i class="fas fa-eraser"></i> Bersihkan</button>
+            <button type="button" onclick="document.getElementById('sig-upload-admin').click()" class="btn btn-secondary btn-sm"><i class="fas fa-image"></i> Unggah Gambar</button>
+            <input type="file" id="sig-upload-admin" class="hidden" accept="image/png,image/jpeg,image/webp" onchange="uploadSignatureImage(event,'admin')">
+            <button type="button" id="btn-save-sig-admin" onclick="saveSignature('admin')" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+            <button type="button" onclick="deleteSignature('admin')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Hapus</button>
+          </div>
+          <div id="sig-saved-admin" class="mt-3"></div>
+
+          <div style="display:flex;align-items:center;gap:9px;margin:22px 0 10px;">
+            <div class="stat-icon" style="width:34px;height:34px;font-size:.95rem;background:rgba(16,185,129,.1);color:var(--success);"><i class="fas fa-user-tie"></i></div>
+            <h4 class="font-bold text-sm" style="color:var(--text-primary);">Gambar TTD Kepala OPD</h4>
+          </div>
+          <div class="sig-box"><canvas id="sig-canvas-kepala"></canvas></div>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <button type="button" onclick="clearSignature('kepala')" class="btn btn-secondary btn-sm"><i class="fas fa-eraser"></i> Bersihkan</button>
+            <button type="button" onclick="document.getElementById('sig-upload-kepala').click()" class="btn btn-secondary btn-sm"><i class="fas fa-image"></i> Unggah Gambar</button>
+            <input type="file" id="sig-upload-kepala" class="hidden" accept="image/png,image/jpeg,image/webp" onchange="uploadSignatureImage(event,'kepala')">
+            <button type="button" id="btn-save-sig-kepala" onclick="saveSignature('kepala')" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk"></i> Simpan</button>
+            <button type="button" onclick="deleteSignature('kepala')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Hapus</button>
+          </div>
+          <div id="sig-saved-kepala" class="mt-3"></div>
+        </div>
+      </div>
+
+      <div id="tpp-monitor" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Monitoring Persetujuan TPP</h3><p class="text-xs mt-0.5 text-muted" id="tpp-mon-subtitle">Wilayah koordinasi Anda</p></div>
+          <div class="section-actions">
+            <select id="tpp-mon-tahun" onchange="loadTPPMonitor()" class="form-select" style="width:auto;min-width:105px;"></select>
+            <select id="tpp-mon-pic" onchange="renderTPPMonitor()" class="form-select" style="width:auto;min-width:210px;"><option value="">Semua PIC Pendamping</option></select>
+            <select id="tpp-mon-filter" onchange="renderTPPMonitor()" class="form-select" style="width:auto;min-width:165px;">
+              <option value="">Semua Status</option><option value="lengkap">Lengkap 12 Bulan</option>
+              <option value="proses">Masih Berproses</option><option value="kosong">Belum Ada Konfirmasi</option>
+              <option value="belumfinal">BA Belum Diunggah</option>
+            </select>
+            <button onclick="exportTPPExcel()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Export</button>
+            <button onclick="printTPPMonitor()" class="btn btn-secondary btn-sm"><i class="fas fa-print"></i> Cetak</button>
+          </div>
+        </div>
+        <div id="tpp-mon-periode"></div>
+        <div id="tpp-mon-stats" class="stats-grid"></div>
+        <div class="form-card mb-3"><div class="form-row" style="margin-bottom:0;"><div><label class="form-label"><i class="fas fa-search mr-1"></i> Cari SKPD / PIC</label><input type="text" id="tpp-mon-search" oninput="renderTPPMonitor()" class="form-input" placeholder="Ketik nama SKPD atau PIC pendamping..."></div></div></div>
+        <div id="tpp-mon-container"></div>
+      </div>
+
+      <div id="tpp-rekap" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Rekap &amp; Konfigurasi TPP</h3><p class="text-xs mt-0.5 text-muted">Rekapitulasi per PIC dan pengaturan tanda tangan</p></div>
+          <div class="section-actions"><select id="tpp-rekap-tahun" onchange="loadTPPRekap()" class="form-select" style="width:auto;min-width:110px;"></select></div>
+        </div>
+        <div id="tpp-rekap-stats" class="stats-grid"></div>
+        <div class="section-header"><h3 class="section-title" style="font-size:1.05rem;">Rekapitulasi per PIC Pendamping</h3></div>
+        <div class="table-wrapper"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th>PIC Pendamping</th><th class="col-actions">SKPD</th><th class="col-actions">Lengkap</th><th class="col-actions">Sebagian</th><th class="col-actions">Belum</th><th class="col-actions">Draft BA</th><th class="col-actions">BA TTD</th><th>Progres</th></tr></thead>
+          <tbody id="tpp-rekap-body"><tr><td colspan="8" class="text-center py-10 text-muted">Memuat...</td></tr></tbody>
+        </table></div></div>
+        <div class="section-header"><h3 class="section-title" style="font-size:1.05rem;">Konfigurasi Berita Acara &amp; Tanda Tangan</h3></div>
+        <form id="form-tpp-config" onsubmit="saveTPPConfigForm(event)" class="form-card">
+          <div class="form-row"><div><label class="form-label">Objek Persetujuan TPP</label><textarea id="cfg-objek" rows="2" class="form-textarea"></textarea><p class="text-xs text-muted mt-1">Muncul setelah kata "memberikan PERSETUJUAN terhadap" pada isi Berita Acara.</p></div></div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Sebutan Pengelola Admin</label><input type="text" id="cfg-label-admin" class="form-input" placeholder="Pengelola Admin TPP"></div>
+            <div><label class="form-label">Posisi Tanda Tangan</label><select id="cfg-posisi" class="form-select"><option value="KEPALA_KIRI">Kepala OPD di kiri, Admin di kanan</option><option value="ADMIN_KIRI">Admin di kiri, Kepala OPD di kanan</option></select></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Judul di atas TTD Admin</label><input type="text" id="cfg-judul-admin" class="form-input" placeholder="Yang Menyatakan Setuju,"></div>
+            <div><label class="form-label">Judul di atas TTD Kepala</label><input type="text" id="cfg-judul-kepala" class="form-input" placeholder="Mengetahui,"></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Metode TTD Bawaan</label><select id="cfg-metode" class="form-select"><option value="ELEKTRONIK">Elektronik (QR verifikasi)</option><option value="MANUAL">Manual</option></select></div>
+            <div><label class="form-label">Wajib TTD Elektronik</label><select id="cfg-wajib-elek" class="form-select"><option value="TIDAK">TIDAK — boleh manual</option><option value="YA">YA — keduanya wajib QR</option></select></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Keterangan di Bawah QR</label><input type="text" id="cfg-qr-label" class="form-input" placeholder="Tanda Tangan Elektronik"></div>
+            <div><label class="form-label">Cetak Tautan Verifikasi</label><select id="cfg-url-ver" class="form-select"><option value="YA">YA</option><option value="TIDAK">TIDAK</option></select></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Kunci Periode</label><select id="cfg-kunci-periode" class="form-select"><option value="YA">YA — hanya bulan sebelum bulan berjalan</option><option value="TIDAK">TIDAK — bebas periode</option></select></div>
+            <div><label class="form-label">Batas Tanggal Konfirmasi</label><select id="cfg-batas-tgl" class="form-select"><option value="KETAT">KETAT — tgl 7 &amp; 10 bulan berikutnya</option><option value="BEBAS">BEBAS — setelah periode berakhir</option></select></div>
+          </div>
+          <div class="form-row two-col">
+            <div><label class="form-label">Kunci Setelah Draft BA</label><select id="cfg-kunci-ba" class="form-select"><option value="YA">YA — konfirmasi tidak dapat diubah</option><option value="TIDAK">TIDAK</option></select></div>
+            <div><label class="form-label">Izinkan Cetak Ulang Draft</label><select id="cfg-cetak-ulang" class="form-select"><option value="YA">YA — selama BA TTD belum diunggah</option><option value="TIDAK">TIDAK</option></select></div>
+          </div>
+          <div class="form-row"><div><label class="form-label">Wajib Unggah BA Bertanda Tangan</label><select id="cfg-wajib-final" class="form-select"><option value="TIDAK">TIDAK</option><option value="YA">YA</option></select></div></div>
+          <div class="flex flex-wrap gap-3 pt-4 border-t" style="border-color:var(--border);">
+            <button type="submit" id="btn-save-cfg" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Konfigurasi</button>
+            <button type="button" onclick="loadTPPConfigForm()" class="btn btn-secondary"><i class="fas fa-rotate-left"></i> Muat Ulang</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="tpp-ba" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Berita Acara Persetujuan TPP</h3><p class="text-xs mt-0.5 text-muted">Draft sistem, tanda tangan elektronik, &amp; dokumen hasil unggahan</p></div>
+          <div class="section-actions">
+            <select id="tpp-ba-tahun" onchange="loadBeritaAcara()" class="form-select" style="width:auto;min-width:105px;"></select>
+            <select id="tpp-ba-pic" onchange="renderBeritaAcara()" class="form-select" style="width:auto;min-width:200px;"><option value="">Semua PIC Pendamping</option></select>
+            <select id="tpp-ba-filter" onchange="renderBeritaAcara()" class="form-select" style="width:auto;min-width:165px;">
+              <option value="">Semua Status</option><option value="sudah">Sudah Diunggah</option><option value="belum">Belum Diunggah</option>
+            </select>
+            <button onclick="exportBAExcel()" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="form-card mb-3"><div class="form-row" style="margin-bottom:0;"><div><label class="form-label"><i class="fas fa-search mr-1"></i> Cari Berita Acara</label><input type="text" id="tpp-ba-search" oninput="renderBeritaAcara()" class="form-input" placeholder="Ketik nama SKPD, nomor, PIC, atau bulan..."></div></div></div>
+        <div id="tpp-ba-container"></div>
+        <div id="tpp-ba-pagination" class="pagination" style="border-radius:var(--radius-lg);border:1px solid var(--border);"></div>
+      </div>
+
+      <div id="tpp-notifikasi" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Generate Pemberitahuan Awal Bulan</h3>
+          <p class="text-xs mt-0.5 text-muted">Template pesan WhatsApp untuk seluruh admin TPP OPD</p></div>
+          <div class="section-actions">
+            <select id="notif-bulan" class="form-select" style="width:auto;min-width:140px;"></select>
+            <select id="notif-tahun" class="form-select" style="width:auto;min-width:110px;"></select>
+           <button id="btn-notif-generate" onclick="generatePemberitahuan(this)" class="btn btn-primary btn-sm"><i class="fas fa-magic"></i> Generate</button>
+          </div>
+        </div>
+        <div class="form-card mb-3" style="background:linear-gradient(135deg,var(--primary-soft),rgba(236,72,153,.05));border-left:4px solid var(--primary);">
+          <p class="text-sm" style="color:var(--text-secondary);"><i class="fas fa-circle-info text-primary mr-1"></i>Fitur ini menghasilkan teks siap kirim ke WhatsApp Grup Admin TPP. Isi mencakup: <strong>pengingat e-Kinerja (tgl 1–7)</strong>, <strong>petunjuk centang TPP di KENDALI</strong>, dan <strong>kredensial login</strong>. Teks ditandatangani atas nama <strong>Tim KENDALI</strong> (nama Anda).</p>
+        </div>
+        <div id="notif-result" class="form-card" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;">
+            <div>
+              <p class="text-xs text-muted uppercase font-bold">Hasil Generate</p>
+              <h4 class="font-bold" id="notif-judul" style="color:var(--text-primary);"></h4>
+              <p class="text-xs text-muted mt-1" id="notif-meta"></p>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="copyNotifText()" class="btn btn-primary btn-sm"><i class="fas fa-copy"></i> Salin</button>
+              <button onclick="openWhatsApp()" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> Buka WhatsApp</button>
+            </div>
+          </div>
+          <pre id="notif-preview" style="white-space:pre-wrap;font-family:inherit;font-size:.875rem;line-height:1.6;background:var(--bg-muted);padding:16px;border-radius:var(--radius-md);border:1px solid var(--border);max-height:520px;overflow:auto;"></pre>
+        </div>
+        <div id="notif-empty" class="form-card text-center text-muted">
+          <i class="fas fa-bullhorn text-3xl mb-2 block"></i>
+          <p>Pilih bulan &amp; tahun, lalu klik <strong>Generate</strong> untuk membuat teks pemberitahuan.</p>
+        </div>
+      </div>
+
+            <div id="panduan" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Panduan Pengguna KENDALI</h3>
+          <p class="text-xs mt-0.5 text-muted" id="panduan-versi"></p></div>
+        </div>
+        <div id="panduan-container"></div>
+      </div>
+
+      <div id="user-management" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Manajemen User</h3><p class="text-xs mt-0.5 text-muted">Kelola Superadmin, Team Internal &amp; User OPD</p></div>
+          <div class="section-actions">
+            <button onclick="syncOpdUsers()" id="btn-sync-opd" class="btn btn-secondary btn-sm"><i class="fas fa-sync-alt"></i> Sinkronkan OPD</button>
+            <button onclick="openUserModal('add')" class="btn btn-primary btn-sm"><i class="fas fa-user-plus"></i> Tambah User</button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="card"><div class="stat-info"><p>Total User</p><h3 id="ustat-total">0</h3></div></div>
+          <div class="card"><div class="stat-info"><p>Superadmin</p><h3 id="ustat-super" style="color:#6d28d9;">0</h3></div></div>
+          <div class="card"><div class="stat-info"><p>Team Internal</p><h3 id="ustat-internal" style="color:#1d4ed8;">0</h3></div></div>
+          <div class="card"><div class="stat-info"><p>User OPD</p><h3 id="ustat-opd" style="color:#15803d;">0</h3></div></div>
+        </div>
+        <div class="form-card mb-4"><div class="form-row two-col" style="margin-bottom:0;">
+          <div><label class="form-label"><i class="fas fa-search mr-1"></i> Cari User</label><input type="text" id="user-search" oninput="applyUserFilters()" class="form-input" placeholder="Cari NIP, nama, atau OPD..."></div>
+          <div><label class="form-label"><i class="fas fa-filter mr-1"></i> Filter Role</label><select id="user-filter-role" onchange="applyUserFilters()" class="form-select"><option value="">Semua Role</option><option value="Superadmin">Superadmin</option><option value="TeamInternal">Team Internal</option><option value="UserOPD">User OPD</option></select></div>
+        </div></div>
+        <div class="table-wrapper"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th>ID / NIP</th><th>Nama</th><th>Role</th><th class="col-hide-sm">OPD / Wilayah</th><th class="col-actions">Aksi</th></tr></thead>
+          <tbody id="user-table-body"><tr><td colspan="5" class="text-center py-10 text-muted"><i class="fas fa-circle-notch fa-spin mr-2"></i>Memuat user...</td></tr></tbody>
+        </table></div><div id="user-pagination" class="pagination"></div></div>
+      </div>
+
+      <div id="profile" class="page">
+        <h3 class="section-title mb-4">Profil &amp; Keamanan Akun</h3>
+        <div class="form-card" style="max-width:640px;">
+          <div class="mb-6 pb-6 border-b" style="border-color:var(--border);">
+            <h4 class="font-bold text-lg mb-3" style="color:var(--text-primary);">Informasi Pengguna</h4>
+            <p class="text-sm text-muted mb-1">Nama: <span id="profile-name" class="font-semibold" style="color:var(--text-primary);"></span></p>
+            <p class="text-sm text-muted mb-1">NIP / ID: <span id="profile-nip" class="font-semibold" style="color:var(--text-primary);"></span></p>
+            <p class="text-sm text-muted mb-1">Role: <span id="profile-role" class="font-semibold" style="color:var(--text-primary);"></span></p>
+            <p class="text-sm text-muted">Wilayah / OPD: <span id="profile-opd" class="font-semibold" style="color:var(--text-primary);"></span></p>
+            <div id="profile-skpd-list" class="mt-3"></div>
+          </div>
+          <h4 class="font-bold text-lg mb-4" style="color:var(--text-primary);">Ganti Password</h4>
+          <form onsubmit="handleChangePassword(event)">
+            <div class="form-row"><div><label class="form-label">Password Lama</label><input type="password" id="old-pass" required class="form-input"></div></div>
+            <div class="form-row"><div><label class="form-label">Password Baru</label><input type="password" id="new-pass" required minlength="6" class="form-input"></div></div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Update Password</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="log-password" class="page">
+        <h3 class="section-title mb-4">Log Perubahan Password</h3>
+        <div class="table-wrapper"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th class="col-date">Waktu</th><th>NIP / ID</th><th>Nama</th><th>Aksi</th></tr></thead>
+          <tbody id="log-password-body"><tr><td colspan="4" class="text-center py-10 text-muted">Memuat...</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <div id="log-aktivitas" class="page">
+        <div class="section-header">
+          <div><h3 class="section-title">Log Aktivitas Sistem</h3><p class="text-xs mt-0.5 text-muted">Jejak seluruh perubahan data</p></div>
+          <div class="section-actions"><button onclick="loadLogAktivitas()" class="btn btn-secondary btn-sm"><i class="fas fa-rotate"></i> Segarkan</button></div>
+        </div>
+        <div class="form-card mb-3"><div class="form-row two-col" style="margin-bottom:0;">
+          <div><label class="form-label"><i class="fas fa-search mr-1"></i> Cari</label><input type="text" id="log-search" oninput="renderLogAktivitas()" class="form-input" placeholder="Cari nama, modul, aksi, keterangan..."></div>
+          <div><label class="form-label">Modul</label><select id="log-modul" onchange="renderLogAktivitas()" class="form-select"><option value="">Semua Modul</option><option>Agenda</option><option>Notulen</option><option>Bank Data</option><option>TPP</option><option>Profil OPD</option><option>Manajemen User</option><option>Akun</option></select></div>
+        </div></div>
+        <div class="table-wrapper"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th class="col-date">Waktu</th><th>Pengguna</th><th>Modul</th><th>Aksi</th><th class="col-hide-sm">ID Data</th><th class="col-hide-sm">Keterangan</th></tr></thead>
+          <tbody id="log-aktivitas-body"><tr><td colspan="6" class="text-center py-10 text-muted">Memuat...</td></tr></tbody>
+        </table></div><div id="log-pagination" class="pagination"></div></div>
+      </div>
+
+      <footer class="app-footer no-print"><p class="font-medium">© 2026 <span class="gradient-text font-bold">KENDALI</span> — Bagian Organisasi Sekretariat Daerah Kabupaten Banyuwangi</p></footer>
+    </div>
+  </main>
+</div>
+
+<div id="modal-notulen" class="hidden" style="position:fixed;inset:0;z-index:200;">
+  <div class="modal-backdrop" onclick="closeModalNotulen()"></div>
+  <div class="modal-content">
+    <div class="modal-header"><div style="min-width:0;flex:1;"><h3>Detail Notulen Rapat</h3><p id="modal-notulen-subtitle" class="text-xs mt-0.5" style="opacity:.9;"></p></div><button onclick="closeModalNotulen()" class="modal-close"><i class="fas fa-times"></i></button></div>
+    <div id="modal-notulen-content" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="modal-media" class="hidden" style="position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;padding:16px;">
+  <div style="position:absolute;top:16px;right:16px;display:flex;gap:8px;z-index:10;">
+    <button onclick="downloadCurrentMedia()" class="btn btn-success btn-sm"><i class="fas fa-download"></i> Download</button>
+    <button onclick="closeMediaModal()" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></button>
+  </div>
+  <div id="modal-media-content" style="max-width:100%;max-height:100%;" onclick="event.stopPropagation()"></div>
+</div>
+
+<div id="modal-doc" class="hidden" style="position:fixed;inset:0;z-index:240;">
+  <div class="modal-backdrop" onclick="closeDocModal()"></div>
+  <div class="modal-content" style="max-width:1000px;height:calc(100vh - 60px);display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <div style="min-width:0;flex:1;"><h3 id="modal-doc-title">Pratinjau Dokumen</h3><p id="modal-doc-sub" class="text-xs mt-0.5" style="opacity:.9;"></p></div>
+      <button id="modal-doc-dl" class="btn btn-success btn-sm" style="flex-shrink:0;"><i class="fas fa-download"></i> Unduh</button>
+      <button id="modal-doc-open" class="btn btn-secondary btn-sm" style="flex-shrink:0;background:rgba(255,255,255,.2);color:#fff;border:none;"><i class="fas fa-up-right-from-square"></i></button>
+      <button onclick="closeDocModal()" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="modal-doc-body" style="flex:1;padding:0;background:var(--bg-muted);overflow:hidden;"></div>
+  </div>
+</div>
+
+<div id="modal-ba" class="hidden" style="position:fixed;inset:0;z-index:236;">
+  <div class="modal-backdrop" onclick="closeBAModal()"></div>
+  <div class="modal-content" style="max-width:580px;">
+    <div class="modal-header"><div style="min-width:0;flex:1;"><h3>Metode Tanda Tangan</h3><p id="ba-modal-sub" class="text-xs mt-0.5" style="opacity:.9;"></p></div><button onclick="closeBAModal()" class="modal-close"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div id="ba-modal-info"></div>
+      <div class="form-row"><div>
+        <label class="form-label">Pengelola Admin TPP</label>
+        <select id="ba-metode-admin" class="form-select" onchange="onBAMetodeChange()">
+          <option value="ELEKTRONIK">Elektronik — barcode QR verifikasi</option>
+          <option value="MANUAL">Manual — ttd. basah / gambar</option>
+        </select>
+        <p id="ba-admin-note" class="text-xs text-muted mt-1"></p>
+      </div></div>
+      <div class="form-row"><div>
+        <label class="form-label">Kepala OPD</label>
+        <select id="ba-metode-kepala" class="form-select" onchange="onBAMetodeChange()">
+          <option value="ELEKTRONIK">Elektronik — barcode QR verifikasi</option>
+          <option value="MANUAL">Manual — ttd. basah / gambar</option>
+        </select>
+        <p id="ba-kepala-note" class="text-xs text-muted mt-1"></p>
+      </div></div>
+      <div class="form-row hidden" id="ba-pin-wrap"><div>
+        <label class="form-label">PIN Persetujuan Kepala OPD <span class="text-danger">*</span></label>
+        <input type="password" id="ba-pin" class="form-input" placeholder="Masukkan PIN" autocomplete="off">
+        <p class="text-xs text-muted mt-1">PIN ditetapkan pada menu Profil OPD &amp; TTD sebagai bentuk persetujuan Kepala OPD.</p>
+      </div></div>
+      <div class="flex flex-wrap gap-3 pt-4 border-t" style="border-color:var(--border);">
+        <button type="button" id="btn-ba-proses" onclick="submitBAModal()" class="btn btn-primary"><i class="fas fa-file-signature"></i> Proses &amp; Buat PDF</button>
+        <button type="button" onclick="closeBAModal()" class="btn btn-secondary">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-qr" class="hidden" style="position:fixed;inset:0;z-index:238;">
+  <div class="modal-backdrop" onclick="closeQRModal()"></div>
+  <div class="modal-content" style="max-width:520px;">
+    <div class="modal-header"><div style="min-width:0;flex:1;"><h3>Tanda Tangan Elektronik</h3><p id="modal-qr-sub" class="text-xs mt-0.5" style="opacity:.9;"></p></div><button onclick="closeQRModal()" class="modal-close"><i class="fas fa-times"></i></button></div>
+    <div id="modal-qr-body" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="modal-tpp" class="hidden" style="position:fixed;inset:0;z-index:230;">
+  <div class="modal-backdrop" onclick="closeTPPModal()"></div>
+  <div class="modal-content" style="max-width:680px;">
+    <div class="modal-header"><div style="min-width:0;flex:1;"><h3 id="modal-tpp-title">Detail Konfirmasi</h3><p id="modal-tpp-sub" class="text-xs mt-0.5" style="opacity:.9;"></p></div><button onclick="closeTPPModal()" class="modal-close"><i class="fas fa-times"></i></button></div>
+    <div id="modal-tpp-body" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="modal-user" class="hidden" style="position:fixed;inset:0;z-index:220;">
+  <div class="modal-backdrop" onclick="closeUserModal()"></div>
+  <div class="modal-content" style="max-width:520px;">
+    <div class="modal-header"><h3 id="user-modal-title">Tambah User</h3><button onclick="closeUserModal()" class="modal-close"><i class="fas fa-times"></i></button></div>
+    <form onsubmit="saveUser(event)" class="modal-body">
+      <input type="hidden" id="user-edit-nip">
+      <div class="form-row"><div><label class="form-label">ID / NIP <span class="text-danger">*</span></label><input type="text" id="user-nip" required class="form-input"></div></div>
+      <div class="form-row"><div><label class="form-label">Nama Lengkap <span class="text-danger">*</span></label><input type="text" id="user-nama" required class="form-input"></div></div>
+      <div class="form-row"><div><label class="form-label">Role <span class="text-danger">*</span></label><select id="user-role" onchange="onUserRoleChange()" class="form-select"><option value="UserOPD">User OPD</option><option value="TeamInternal">Team Internal</option><option value="Superadmin">Superadmin</option></select></div></div>
+      <div class="form-row"><div><label class="form-label">OPD / Wilayah</label><select id="user-opd" class="form-select"><option value="">-- Pilih OPD --</option></select><input type="text" id="user-opd-manual" class="form-input mt-2 hidden" placeholder="Team Internal: pisahkan dengan titik koma (;)"></div></div>
+      <div class="form-row" id="user-pass-wrap"><div><label class="form-label">Password</label><input type="text" id="user-password" class="form-input" value="password123"></div></div>
+      <div class="flex flex-wrap gap-3 pt-4 border-t" style="border-color:var(--border);">
+        <button type="submit" id="btn-save-user" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
+        <button type="button" onclick="closeUserModal()" class="btn btn-secondary">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<?!= include('JavaScript'); ?>
+</body>
+</html>
